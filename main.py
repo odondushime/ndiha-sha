@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, session
+from flask import Flask, render_template, redirect, url_for, flash, request, session, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from forms import RegisterForm, LoginForm, AddWalletForm, TransferForm
@@ -18,15 +18,21 @@ csrf = CSRFProtect(app)
 with app.app_context():
     db.create_all()
 
+@app.before_request
+def before_request():
+    g.user = None
+    if 'user_id' in session:
+        g.user = User.query.get(session['user_id'])
+
 @app.route('/')
 def index():
-    if 'user_id' in session:
+    if g.user:
         return redirect(url_for('dashboard'))
     return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if 'user_id' in session:
+    if g.user:
         return redirect(url_for('dashboard'))
     
     form = RegisterForm()
@@ -41,11 +47,11 @@ def register():
         flash('Registration successful! Please log in.', 'success')
         return redirect(url_for('login'))
     
-    return render_template('register.html', form=form)
+    return render_template('register.html', form=form, user=None)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if 'user_id' in session:
+    if g.user:
         return redirect(url_for('dashboard'))
     
     form = LoginForm()
@@ -57,15 +63,14 @@ def login():
             return redirect(url_for('dashboard'))
         flash('Invalid username or password', 'error')
     
-    return render_template('login.html', form=form)
+    return render_template('login.html', form=form, user=None)
 
 @app.route('/dashboard')
 def dashboard():
-    if 'user_id' not in session:
+    if not g.user:
         return redirect(url_for('login'))
     
-    user = User.query.get(session['user_id'])
-    wallets = Wallet.query.filter_by(user_id=user.id).all()
+    wallets = Wallet.query.filter_by(user_id=g.user.id).all()
     
     # Initialize forms
     transfer_form = TransferForm()
@@ -76,11 +81,11 @@ def dashboard():
     
     # Get recent transactions
     transactions = Transaction.query.filter(
-        (Transaction.sender_id == user.id) | (Transaction.recipient_id == user.id)
+        (Transaction.sender_id == g.user.id) | (Transaction.recipient_id == g.user.id)
     ).order_by(Transaction.timestamp.desc()).limit(10).all()
     
     return render_template('dashboard.html', 
-                         user=user,
+                         user=g.user,
                          wallets=wallets,
                          transactions=transactions,
                          transfer_form=transfer_form,
@@ -88,13 +93,13 @@ def dashboard():
 
 @app.route('/add_wallet', methods=['POST'])
 def add_wallet():
-    if 'user_id' not in session:
+    if not g.user:
         return redirect(url_for('login'))
     
     form = AddWalletForm()
     if form.validate_on_submit():
         wallet = Wallet(
-            user_id=session['user_id'],
+            user_id=g.user.id,
             currency=form.currency.data,
             balance=0.0
         )
@@ -106,14 +111,14 @@ def add_wallet():
 
 @app.route('/transfer', methods=['POST'])
 def transfer():
-    if 'user_id' not in session:
+    if not g.user:
         return redirect(url_for('login'))
     
     form = TransferForm()
     if form.validate_on_submit():
         # Get sender's wallet
         sender_wallet = Wallet.query.filter_by(
-            user_id=session['user_id'],
+            user_id=g.user.id,
             currency=form.currency.data
         ).first()
         
@@ -138,7 +143,7 @@ def transfer():
         
         # Create transaction
         transaction = Transaction(
-            sender_id=session['user_id'],
+            sender_id=g.user.id,
             recipient_id=recipient.id,
             amount=form.amount.data,
             currency=form.currency.data,

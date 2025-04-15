@@ -1,24 +1,57 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, FloatField, SelectField, SubmitField
-from wtforms.validators import DataRequired, Email, Length
+from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError
+from models import User
 
 class RegisterForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=80)])
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
-    submit = SubmitField('Register')
+    username = StringField('Username', validators=[
+        DataRequired(message='Username is required'),
+        Length(min=3, max=80, message='Username must be between 3 and 80 characters')
+    ])
+    email = StringField('Email', validators=[
+        DataRequired(message='Email is required'),
+        Email(message='Invalid email address')
+    ])
+    password = PasswordField('Password', validators=[
+        DataRequired(message='Password is required'),
+        Length(min=6, message='Password must be at least 6 characters')
+    ])
+    confirm_password = PasswordField('Confirm Password', validators=[
+        DataRequired(message='Please confirm your password'),
+        EqualTo('password', message='Passwords must match')
+    ])
+
+    def validate_username(self, username):
+        user = User.query.filter_by(username=username.data).first()
+        if user:
+            raise ValidationError('Username is already taken')
+
+    def validate_email(self, email):
+        user = User.query.filter_by(email=email.data).first()
+        if user:
+            raise ValidationError('Email is already registered')
 
 class LoginForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    submit = SubmitField('Login')
+    username = StringField('Username', validators=[
+        DataRequired(message='Username is required')
+    ])
+    password = PasswordField('Password', validators=[
+        DataRequired(message='Password is required')
+    ])
 
 class AddWalletForm(FlaskForm):
-    currency = StringField('Currency', validators=[DataRequired(), Length(min=3, max=3)])
-    submit = SubmitField('Add Wallet')
+    currency = StringField('Currency', validators=[
+        DataRequired(message='Currency is required'),
+        Length(min=3, max=3, message='Currency must be 3 characters')
+    ])
 
 class TransferForm(FlaskForm):
-    recipient = StringField('Recipient Username', validators=[DataRequired()])
-    amount = FloatField('Amount', validators=[DataRequired()])
-    currency = SelectField('Currency', validators=[DataRequired()])
-    submit = SubmitField('Transfer')
+    recipient = StringField('Recipient Username', validators=[
+        DataRequired(message='Recipient username is required')
+    ])
+    amount = FloatField('Amount', validators=[
+        DataRequired(message='Amount is required')
+    ])
+    currency = SelectField('Currency', validators=[
+        DataRequired(message='Currency is required')
+    ])

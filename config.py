@@ -16,7 +16,7 @@ class Config:
     
     # Template configuration
     TEMPLATES_AUTO_RELOAD = True
-    EXPLAIN_TEMPLATE_LOADING = False  # Disable debug mode for production
+    EXPLAIN_TEMPLATE_LOADING = True  # Enable template loading explanation
     TEMPLATE_FOLDER = 'templates'  # Explicitly set template folder
     
     # CSRF protection
@@ -27,3 +27,7 @@ class Config:
     WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
     WTF_CSRF_HEADERS = ['X-CSRFToken', 'X-CSRF-Token']
     WTF_CSRF_FIELD_NAME = 'csrf_token'
+    
+    # Debug settings
+    DEBUG = True
+    TESTING = False
