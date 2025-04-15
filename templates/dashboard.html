@@ -1,69 +1,142 @@
-<!doctype html>
-<html>
-  <head>
-    <title>Ndiha-sha - Dashboard</title>
-  </head>
-  <body>
-    <h1>Welcome, {{ user.username }}</h1>
-    <a href="{{ url_for('logout') }}">Logout</a>
+{% extends "base.html" %} {% block title %}Dashboard - Ndiha-sha{% endblock %}
+{% block extra_css %}
+<style>
+  .wallet-balance {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #2c3e50;
+  }
+  .transaction-item {
+    border-left: 4px solid #2c3e50;
+    padding-left: 10px;
+    margin-bottom: 10px;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="row">
+  <!-- Wallets Section -->
+  <div class="col-md-6">
+    <div class="card">
+      <div
+        class="card-header d-flex justify-content-between align-items-center"
+      >
+        <h5 class="mb-0">Your Wallets</h5>
+        <button
+          type="button"
+          class="btn btn-sm btn-light"
+          data-bs-toggle="modal"
+          data-bs-target="#addWalletModal"
+        >
+          <i class="bi bi-plus-lg"></i> Add Wallet
+        </button>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          {% for wallet in wallets %}
+          <div class="col-md-6 mb-3">
+            <div class="card">
+              <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">
+                  {{ wallet.currency }}
+                </h6>
+                <p class="wallet-balance">
+                  {{ "%.2f"|format(wallet.balance) }}
+                </p>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <h2>Your Wallets</h2>
-    <ul>
-      {% for wallet in user.wallets %}
-      <li>{{ wallet.currency }}: {{ wallet.balance }}</li>
+  <!-- Transfer Section -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Transfer Money</h5>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('transfer') }}">
+          {{ transfer_form.hidden_tag() }}
+          <div class="mb-3">
+            {{ transfer_form.recipient.label(class="form-label") }} {{
+            transfer_form.recipient(class="form-control") }}
+          </div>
+          <div class="mb-3">
+            {{ transfer_form.amount.label(class="form-label") }} {{
+            transfer_form.amount(class="form-control") }}
+          </div>
+          <div class="mb-3">
+            {{ transfer_form.currency.label(class="form-label") }} {{
+            transfer_form.currency(class="form-select") }}
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Transfer</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Transaction History -->
+<div class="card mt-4">
+  <div class="card-header">
+    <h5 class="mb-0">Transaction History</h5>
+  </div>
+  <div class="card-body">
+    <div class="list-group">
+      {% for transaction in transactions %}
+      <div class="list-group-item transaction-item">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="mb-1">
+              {{ transaction.amount }} {{ transaction.currency }}
+            </h6>
+            <small class="text-muted">
+              {% if transaction.sender_id == user.id %} To: {{
+              User.query.get(transaction.recipient_id).username }} {% else %}
+              From: {{ User.query.get(transaction.sender_id).username }} {%
+              endif %}
+            </small>
+          </div>
+          <span class="badge bg-success">Completed</span>
+        </div>
+        <small class="text-muted"
+          >{{ transaction.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small
+        >
+      </div>
       {% endfor %}
-    </ul>
+    </div>
+  </div>
+</div>
 
-    <h2>Add Wallet</h2>
-    <form method="POST" action="{{ url_for('add_wallet') }}">
-      <input
-        type="text"
-        name="currency"
-        placeholder="Currency (e.g., EUR)"
-        required
-      />
-      <button type="submit">Add Wallet</button>
-    </form>
-
-    <h2>Transfer Money</h2>
-    {% with messages = get_flashed_messages() %} {% if messages %}
-    <ul>
-      {% for message in messages %}
-      <li>{{ message }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %} {% endwith %}
-    <form method="POST" action="{{ url_for('transfer') }}">
-      <input
-        type="text"
-        name="recipient"
-        placeholder="Recipient Username"
-        required
-      /><br />
-      <input
-        type="number"
-        name="amount"
-        step="0.01"
-        placeholder="Amount"
-        required
-      /><br />
-      <select name="currency">
-        {% for wallet in user.wallets %}
-        <option value="{{ wallet.currency }}">{{ wallet.currency }}</option>
-        {% endfor %}</select
-      ><br />
-      <button type="submit">Transfer</button>
-    </form>
-
-    <h2>Transaction History</h2>
-    <ul>
-      {% for wallet in user.wallets %} {% for transaction in wallet.transactions
-      %}
-      <li>
-        {{ transaction.amount }} {{ transaction.currency }} to {{
-        transaction.recipient.username }} ({{ transaction.status }})
-      </li>
-      {% endfor %} {% endfor %}
-    </ul>
-  </body>
-</html>
+<!-- Add Wallet Modal -->
+<div class="modal fade" id="addWalletModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add New Wallet</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form method="POST" action="{{ url_for('add_wallet') }}">
+          {{ add_wallet_form.hidden_tag() }}
+          <div class="mb-3">
+            {{ add_wallet_form.currency.label(class="form-label") }} {{
+            add_wallet_form.currency(class="form-control", placeholder="e.g.,
+            EUR") }}
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            Add Wallet
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
