@@ -5,8 +5,14 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key')
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///ndiha_sha.db'
+    
+    # Database configuration
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///ndiha_sha.db')
+    if SQLALCHEMY_DATABASE_URI.startswith('postgres://'):
+        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace('postgres://', 'postgresql://', 1)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # API Keys
     EXCHANGE_RATE_API_KEY = os.getenv('EXCHANGE_RATE_API_KEY', 'your-api-key')
     
     # Session security
@@ -14,16 +20,14 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     
-    # Template configuration
+    # Template settings
     TEMPLATES_AUTO_RELOAD = True
-    EXPLAIN_TEMPLATE_LOADING = True  # Enable template loading explanation
-    TEMPLATE_FOLDER = 'templates'  # Explicitly set template folder
+    EXPLAIN_TEMPLATE_LOADING = False
+    TEMPLATE_FOLDER = 'templates'
     
-    # CSRF protection
+    # CSRF Protection
     WTF_CSRF_ENABLED = True
-    WTF_CSRF_SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key')
-    
-    # Form configuration
+    WTF_CSRF_SECRET_KEY = os.getenv('CSRF_SECRET_KEY', 'your-csrf-secret-key')
     WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
     WTF_CSRF_HEADERS = ['X-CSRFToken', 'X-CSRF-Token']
     WTF_CSRF_FIELD_NAME = 'csrf_token'
