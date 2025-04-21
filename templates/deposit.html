@@ -1,0 +1,48 @@
+{% extends "base.html" %} {% block title %}Deposit Funds{% endblock %} {% block
+content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow">
+        <div class="card-body p-4">
+          <h2 class="text-center mb-4">Deposit Funds</h2>
+
+          <form method="POST" action="{{ url_for('deposit') }}">
+            {{ form.csrf_token }}
+
+            <div class="mb-3">
+              {{ form.amount.label(class="form-label") }}
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                {{ form.amount(class="form-control", placeholder="Enter amount")
+                }}
+              </div>
+              {% if form.amount.errors %}
+              <div class="text-danger">
+                {% for error in form.amount.errors %} {{ error }} {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="mb-4">
+              {{ form.currency.label(class="form-label") }} {{
+              form.currency(class="form-select") }} {% if form.currency.errors
+              %}
+              <div class="text-danger">
+                {% for error in form.currency.errors %} {{ error }} {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-money-bill-wave me-2"></i>Deposit
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

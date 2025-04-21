@@ -1,16 +1,24 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, session, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
-from forms import RegisterForm, LoginForm, AddWalletForm, TransferForm
+from forms import RegisterForm, LoginForm, AddWalletForm, TransferForm, DepositForm
 from config import Config
 from models import db, User, Wallet, Transaction
 from datetime import datetime
 import requests
 import os
 import logging
+from flask_mail import Mail, Message
+from logging.handlers import RotatingFileHandler
+import traceback
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=Config.LOG_LEVEL,
+                   format=Config.LOG_FORMAT,
+                   handlers=[
+                       RotatingFileHandler(Config.LOG_FILE, maxBytes=10000, backupCount=3),
+                       logging.StreamHandler()
+                   ])
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -19,6 +27,7 @@ app.config.from_object(Config)
 # Initialize extensions
 db.init_app(app)
 csrf = CSRFProtect(app)
+mail = Mail(app)
 
 # Create database tables
 with app.app_context():
@@ -26,8 +35,8 @@ with app.app_context():
         db.create_all()
         logger.info("Database tables created successfully")
     except Exception as e:
-        logger.error(f"Database initialization error: {str(e)}")
-        # Don't raise the error, let the app continue
+        logger.error(f"Error creating database tables: {str(e)}")
+        logger.error(traceback.format_exc())
 
 @app.before_request
 def before_request():
@@ -37,9 +46,14 @@ def before_request():
 
 @app.route('/')
 def index():
-    if g.user:
-        return redirect(url_for('dashboard'))
-    return render_template('index.html')
+    try:
+        if g.user:
+            return redirect(url_for('dashboard'))
+        return render_template('index.html')
+    except Exception as e:
+        logger.error(f"Error in index route: {str(e)}")
+        logger.error(traceback.format_exc())
+        return render_template('500.html'), 500
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -70,6 +84,31 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
         if user and user.check_password(form.password.data):
             session['user_id'] = user.id
+            
+            # Send login notification email
+            try:
+                msg = Message(
+                    'Login Notification - Ndiha-sha',
+                    sender=app.config['MAIL_DEFAULT_SENDER'],
+                    recipients=[user.email]
+                )
+                msg.body = f'''
+                Hello {user.username},
+                
+                You have successfully logged into your Ndiha-sha account.
+                
+                Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
+                IP Address: {request.remote_addr}
+                
+                If this was not you, please contact support immediately.
+                
+                Thank you for using Ndiha-sha!
+                '''
+                mail.send(msg)
+                logger.info(f"Login notification email sent to {user.email}")
+            except Exception as e:
+                logger.error(f"Failed to send login notification email: {str(e)}")
+            
             flash('Login successful!', 'success')
             return redirect(url_for('dashboard'))
         flash('Invalid username or password', 'error')
@@ -172,20 +211,80 @@ def transfer():
     
     return redirect(url_for('dashboard'))
 
+@app.route('/deposit', methods=['GET', 'POST'])
+def deposit():
+    if not g.user:
+        return redirect(url_for('login'))
+    
+    form = DepositForm()
+    if form.validate_on_submit():
+        wallet = Wallet.query.filter_by(
+            user_id=g.user.id,
+            currency=form.currency.data
+        ).first()
+        
+        if not wallet:
+            flash('Wallet not found', 'error')
+            return redirect(url_for('dashboard'))
+        
+        # Create transaction
+        transaction = Transaction(
+            sender_id=g.user.id,
+            recipient_id=g.user.id,  # Self-transaction for deposit
+            amount=form.amount.data,
+            currency=form.currency.data,
+            timestamp=datetime.utcnow(),
+            type='deposit'
+        )
+        
+        # Update balance
+        wallet.balance += form.amount.data
+        
+        db.session.add(transaction)
+        db.session.commit()
+        
+        # Send email notification
+        try:
+            msg = Message(
+                'Deposit Confirmation - Ndiha-sha',
+                sender=app.config['MAIL_DEFAULT_SENDER'],
+                recipients=[g.user.email]
+            )
+            msg.body = f'''
+            Hello {g.user.username},
+            
+            Your deposit of {form.amount.data} {form.currency.data} has been successfully processed.
+            
+            New balance: {wallet.balance} {form.currency.data}
+            
+            Thank you for using Ndiha-sha!
+            '''
+            mail.send(msg)
+            flash('Deposit successful! Confirmation email sent.', 'success')
+        except Exception as e:
+            logger.error(f"Failed to send email: {str(e)}")
+            flash('Deposit successful, but email notification failed to send.', 'warning')
+        
+        return redirect(url_for('dashboard'))
+    
+    return render_template('deposit.html', form=form)
+
 @app.route('/logout')
 def logout():
-    session.pop('user_id', None)
-    flash('You have been logged out', 'info')
+    if 'user_id' in session:
+        session.pop('user_id', None)
+    flash('You have been logged out successfully.', 'info')
     return redirect(url_for('index'))
 
 @app.errorhandler(500)
 def internal_error(error):
-    logger.error(f"Internal Server Error: {str(error)}")
+    logger.error(f"500 Error: {str(error)}")
+    logger.error(traceback.format_exc())
     return render_template('500.html'), 500
 
 @app.errorhandler(404)
 def not_found_error(error):
-    logger.error(f"Not Found Error: {str(error)}")
+    logger.error(f"404 Error: {str(error)}")
     return render_template('404.html'), 404
 
 if __name__ == '__main__':

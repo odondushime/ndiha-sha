@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, FloatField, SelectField, SubmitField
-from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError
+from wtforms import StringField, PasswordField, FloatField, SelectField, SubmitField, DecimalField
+from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError, NumberRange
 from models import User
 
 class RegisterForm(FlaskForm):
@@ -55,3 +55,15 @@ class TransferForm(FlaskForm):
     currency = SelectField('Currency', validators=[
         DataRequired(message='Currency is required')
     ])
+
+class DepositForm(FlaskForm):
+    amount = DecimalField('Amount', validators=[
+        DataRequired(message='Please enter an amount'),
+        NumberRange(min=0.01, message='Amount must be greater than 0')
+    ])
+    currency = SelectField('Currency', choices=[
+        ('USD', 'USD'),
+        ('EUR', 'EUR'),
+        ('GBP', 'GBP'),
+        ('RWF', 'RWF')
+    ], validators=[DataRequired(message='Please select a currency')])

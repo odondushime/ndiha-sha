@@ -1,5 +1,10 @@
 import os
 from dotenv import load_dotenv
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -15,7 +20,8 @@ class Config:
         'pool_size': 5,
         'max_overflow': 10,
         'pool_timeout': 30,
-        'pool_recycle': 1800
+        'pool_recycle': 1800,
+        'pool_pre_ping': True  # Enable connection health checks
     }
     
     # API Keys
@@ -41,3 +47,16 @@ class Config:
     # Debug settings
     DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     TESTING = False
+    
+    # Email configuration
+    MAIL_SERVER = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+    MAIL_PORT = int(os.getenv('MAIL_PORT', 587))
+    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'
+    MAIL_USERNAME = os.getenv('MAIL_USERNAME')
+    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@ndiha-sha.com')
+    
+    # Logging configuration
+    LOG_LEVEL = logging.INFO
+    LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    LOG_FILE = 'app.log'

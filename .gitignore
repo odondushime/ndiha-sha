@@ -1,6 +1,3 @@
-# Environment variables
-.env
-
 # Python
 __pycache__/
 *.py[cod]
@@ -34,16 +31,16 @@ ENV/
 *.swp
 *.swo
 
-# Database
-*.db
-*.sqlite3
+# Environment variables
+.env
 
 # Logs
 *.log
 
-# Flask
-instance/
-.flaskenv
+# Database
+*.db
+*.sqlite3
 
-# Misc
+# OS
 .DS_Store
+Thumbs.db
