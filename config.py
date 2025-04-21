@@ -11,6 +11,12 @@ class Config:
     if SQLALCHEMY_DATABASE_URI.startswith('postgres://'):
         SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace('postgres://', 'postgresql://', 1)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 5,
+        'max_overflow': 10,
+        'pool_timeout': 30,
+        'pool_recycle': 1800
+    }
     
     # API Keys
     EXCHANGE_RATE_API_KEY = os.getenv('EXCHANGE_RATE_API_KEY', 'your-api-key')
@@ -33,5 +39,5 @@ class Config:
     WTF_CSRF_FIELD_NAME = 'csrf_token'
     
     # Debug settings
-    DEBUG = True
+    DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     TESTING = False

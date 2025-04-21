@@ -6,6 +6,12 @@ from config import Config
 from models import db, User, Wallet, Transaction
 from datetime import datetime
 import requests
+import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -16,7 +22,12 @@ csrf = CSRFProtect(app)
 
 # Create database tables
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
+        logger.info("Database tables created successfully")
+    except Exception as e:
+        logger.error(f"Database initialization error: {str(e)}")
+        # Don't raise the error, let the app continue
 
 @app.before_request
 def before_request():
@@ -167,5 +178,17 @@ def logout():
     flash('You have been logged out', 'info')
     return redirect(url_for('index'))
 
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error(f"Internal Server Error: {str(error)}")
+    return render_template('500.html'), 500
+
+@app.errorhandler(404)
+def not_found_error(error):
+    logger.error(f"Not Found Error: {str(error)}")
+    return render_template('404.html'), 404
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5001))
+    debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(host='0.0.0.0', port=port, debug=debug)
