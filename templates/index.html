@@ -1,30 +1,99 @@
 {% extends "base.html" %} {% block title %}Welcome to Ndiha-sha{% endblock %} {%
 block content %}
-<div class="container mt-5">
-  <div class="row justify-content-center">
-    <div class="col-md-8 text-center">
-      <h1 class="display-4 mb-4">Welcome to Ndiha-sha</h1>
-      <p class="lead mb-4">
-        Your secure digital wallet for seamless transactions
-      </p>
+<div class="container-fluid p-0">
+  <!-- Main Content -->
+  <div class="row min-vh-100 align-items-center">
+    <!-- Left Column - Text Content -->
+    <div class="col-lg-6 px-5 py-5">
+      <div class="text-center text-lg-start">
+        <h1 class="display-3 fw-bold mb-4 welcome-text">
+          Welcome to Ndiha-sha
+        </h1>
+        <p class="lead mb-5 text-dark">
+          Your secure digital wallet for seamless transactions
+        </p>
 
-      <div class="row mt-4">
-        <div class="col-md-6 mb-3">
+        <div
+          class="d-flex flex-column flex-lg-row gap-3 justify-content-center justify-content-lg-start"
+        >
+          <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg px-4">
+            <i class="fas fa-sign-in-alt me-2"></i>Sign In
+          </a>
           <a
             href="{{ url_for('register') }}"
-            class="btn btn-primary btn-lg w-100"
-            >Register</a
+            class="btn btn-outline-primary btn-lg px-4"
           >
+            <i class="fas fa-user-plus me-2"></i>Create Account
+          </a>
         </div>
-        <div class="col-md-6 mb-3">
-          <a
-            href="{{ url_for('login') }}"
-            class="btn btn-outline-primary btn-lg w-100"
-            >Login</a
-          >
+      </div>
+    </div>
+
+    <!-- Right Column - Image -->
+    <div class="col-lg-6 d-none d-lg-block">
+      <div class="position-relative h-100">
+        <div
+          class="position-absolute top-0 start-0 w-100 h-100 bg-primary opacity-10"
+        ></div>
+        <div class="position-absolute top-50 start-50 translate-middle w-75">
+          <img
+            src="https://images.unsplash.com/photo-1621761191319-c6fb62004040?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80"
+            alt="Digital Wallet"
+            class="img-fluid rounded-4 shadow-lg"
+          />
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<style>
+  body {
+    background-color: #ffffff;
+  }
+
+  .welcome-text {
+    color: #2563eb;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    letter-spacing: -0.5px;
+  }
+
+  .btn-primary {
+    background: #2563eb;
+    border: none;
+    transition: all 0.3s ease;
+  }
+
+  .btn-primary:hover {
+    background: #1d4ed8;
+    transform: translateY(-2px);
+  }
+
+  .btn-outline-primary {
+    color: #2563eb;
+    border-color: #2563eb;
+    transition: all 0.3s ease;
+  }
+
+  .btn-outline-primary:hover {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #1d4ed8;
+    transform: translateY(-2px);
+  }
+
+  .text-primary {
+    color: #2563eb !important;
+  }
+
+  .text-dark {
+    color: #1f2937 !important;
+  }
+
+  @media (max-width: 991.98px) {
+    .min-vh-100 {
+      min-height: auto !important;
+    }
+  }
+</style>
 {% endblock %}
