@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, FloatField, SelectField, SubmitField, DecimalField
-from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError, NumberRange
+from wtforms import StringField, PasswordField, FloatField, SelectField, SubmitField, DecimalField, TextAreaField
+from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError, NumberRange, Optional
 from models import User
 
 class RegisterForm(FlaskForm):
@@ -67,3 +67,29 @@ class DepositForm(FlaskForm):
         ('GBP', 'GBP'),
         ('RWF', 'RWF')
     ], validators=[DataRequired(message='Please select a currency')])
+
+class CurrencyConversionForm(FlaskForm):
+    from_currency = SelectField('From', choices=[
+        ('USD', 'USD - US Dollar'),
+        ('EUR', 'EUR - Euro'),
+        ('GBP', 'GBP - British Pound'),
+        ('RWF', 'RWF - Rwandan Franc'),
+        ('KES', 'KES - Kenyan Shilling'),
+        ('UGX', 'UGX - Ugandan Shilling'),
+        ('TZS', 'TZS - Tanzanian Shilling')
+    ], validators=[DataRequired()])
+    to_currency = SelectField('To', choices=[
+        ('USD', 'USD - US Dollar'),
+        ('EUR', 'EUR - Euro'),
+        ('GBP', 'GBP - British Pound'),
+        ('RWF', 'RWF - Rwandan Franc'),
+        ('KES', 'KES - Kenyan Shilling'),
+        ('UGX', 'UGX - Ugandan Shilling'),
+        ('TZS', 'TZS - Tanzanian Shilling')
+    ], validators=[DataRequired()])
+    amount = DecimalField('Amount', validators=[
+        DataRequired(),
+        NumberRange(min=0.01, message='Amount must be greater than 0')
+    ])
+    notes = TextAreaField('Notes', validators=[Optional()])
+    submit = SubmitField('Convert')

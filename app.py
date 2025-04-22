@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, session, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
-from forms import RegisterForm, LoginForm, AddWalletForm, TransferForm, DepositForm
+from forms import RegisterForm, LoginForm, AddWalletForm, TransferForm, DepositForm, CurrencyConversionForm
 from config import Config
 from models import db, User, Wallet, Transaction
 from datetime import datetime
@@ -286,6 +286,87 @@ def internal_error(error):
 def not_found_error(error):
     logger.error(f"404 Error: {str(error)}")
     return render_template('404.html'), 404
+
+def get_exchange_rate(from_currency, to_currency):
+    """Get exchange rate from API"""
+    try:
+        url = f"https://api.exchangerate-api.com/v4/latest/{from_currency}"
+        response = requests.get(url)
+        data = response.json()
+        return data['rates'][to_currency]
+    except Exception as e:
+        logger.error(f"Error getting exchange rate: {str(e)}")
+        return None
+
+@app.route('/convert', methods=['GET', 'POST'])
+def convert_currency():
+    form = CurrencyConversionForm()
+    if form.validate_on_submit():
+        from_currency = form.from_currency.data
+        to_currency = form.to_currency.data
+        amount = form.amount.data
+        notes = form.notes.data
+
+        # Get exchange rate
+        rate = get_exchange_rate(from_currency, to_currency)
+        if not rate:
+            flash('Error getting exchange rate. Please try again.', 'danger')
+            return redirect(url_for('dashboard'))
+
+        # Calculate converted amount
+        converted_amount = amount * rate
+
+        # Create transaction records
+        from_wallet = Wallet.query.filter_by(
+            user_id=g.user.id,
+            currency=from_currency
+        ).first()
+        to_wallet = Wallet.query.filter_by(
+            user_id=g.user.id,
+            currency=to_currency
+        ).first()
+
+        if not from_wallet or not to_wallet:
+            flash('Please add wallets for both currencies first.', 'danger')
+            return redirect(url_for('dashboard'))
+
+        if from_wallet.balance < amount:
+            flash('Insufficient balance in source wallet.', 'danger')
+            return redirect(url_for('dashboard'))
+
+        try:
+            # Update balances
+            from_wallet.balance -= amount
+            to_wallet.balance += converted_amount
+
+            # Create transaction records
+            from_transaction = Transaction(
+                wallet_id=from_wallet.id,
+                amount=-amount,
+                transaction_type='conversion',
+                notes=f"Converted to {to_currency} at rate {rate}"
+            )
+            to_transaction = Transaction(
+                wallet_id=to_wallet.id,
+                amount=converted_amount,
+                transaction_type='conversion',
+                notes=f"Converted from {from_currency} at rate {rate}"
+            )
+
+            db.session.add(from_transaction)
+            db.session.add(to_transaction)
+            db.session.commit()
+
+            flash(f'Successfully converted {amount} {from_currency} to {converted_amount:.2f} {to_currency}', 'success')
+            return redirect(url_for('dashboard'))
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error during currency conversion: {str(e)}")
+            flash('An error occurred during conversion. Please try again.', 'danger')
+            return redirect(url_for('dashboard'))
+
+    return render_template('modals/convert.html', form=form)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))

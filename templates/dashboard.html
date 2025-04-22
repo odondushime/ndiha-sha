@@ -11,132 +11,323 @@
     padding-left: 10px;
     margin-bottom: 10px;
   }
+  .quick-actions .btn {
+    margin: 5px;
+  }
+  .profile-pic {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .analytics-card {
+    height: 100%;
+  }
+  .budget-progress {
+    height: 10px;
+  }
+  .security-badge {
+    font-size: 0.8rem;
+  }
 </style>
 {% endblock %} {% block content %}
-<div class="row">
-  <!-- Wallets Section -->
-  <div class="col-md-6">
-    <div class="card">
-      <div
-        class="card-header d-flex justify-content-between align-items-center"
-      >
-        <h5 class="mb-0">Your Wallets</h5>
-        <button
-          type="button"
-          class="btn btn-sm btn-light"
-          data-bs-toggle="modal"
-          data-bs-target="#addWalletModal"
-        >
-          <i class="bi bi-plus-lg"></i> Add Wallet
-        </button>
+<div class="container-fluid">
+  <!-- Top Summary Section -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Total Balance</h5>
+          <h2 class="text-primary">{{ "%.2f"|format(total_balance) }} USD</h2>
+          <small class="text-muted">Last updated: {{ last_update }}</small>
+        </div>
       </div>
-      <div class="card-body">
-        <div class="row">
-          {% for wallet in wallets %}
-          <div class="col-md-6 mb-3">
-            <div class="card">
-              <div class="card-body">
-                <h6 class="card-subtitle mb-2 text-muted">
-                  {{ wallet.currency }}
-                </h6>
-                <p class="wallet-balance">
-                  {{ "%.2f"|format(wallet.balance) }}
-                </p>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Quick Actions</h5>
+          <div class="quick-actions">
+            <button
+              class="btn btn-primary"
+              data-bs-toggle="modal"
+              data-bs-target="#transferModal"
+            >
+              <i class="bi bi-arrow-up-right"></i> Transfer
+            </button>
+            <button
+              class="btn btn-success"
+              data-bs-toggle="modal"
+              data-bs-target="#depositModal"
+            >
+              <i class="bi bi-plus-lg"></i> Deposit
+            </button>
+            <button
+              class="btn btn-info"
+              data-bs-toggle="modal"
+              data-bs-target="#convertModal"
+            >
+              <i class="bi bi-currency-exchange"></i> Convert
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Security Status</h5>
+          <div class="d-flex align-items-center">
+            <span class="badge bg-success security-badge me-2"
+              >2FA Enabled</span
+            >
+            <span class="badge bg-warning security-badge"
+              >Last Login: {{ last_login }}</span
+            >
+          </div>
+          <a
+            href="{{ url_for('security_settings') }}"
+            class="btn btn-sm btn-outline-primary mt-2"
+          >
+            Manage Security
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="row">
+    <!-- Left Column -->
+    <div class="col-md-8">
+      <!-- Wallets Section -->
+      <div class="card mb-4">
+        <div
+          class="card-header d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">Your Wallets</h5>
+          <button
+            type="button"
+            class="btn btn-sm btn-light"
+            data-bs-toggle="modal"
+            data-bs-target="#addWalletModal"
+          >
+            <i class="bi bi-plus-lg"></i> Add Wallet
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for wallet in wallets %}
+            <div class="col-md-4 mb-3">
+              <div class="card">
+                <div class="card-body">
+                  <h6 class="card-subtitle mb-2 text-muted">
+                    {{ wallet.currency }}
+                  </h6>
+                  <p class="wallet-balance">
+                    {{ "%.2f"|format(wallet.balance) }}
+                  </p>
+                  <div class="d-flex justify-content-between">
+                    <small class="text-muted"
+                      >Last activity: {{ wallet.last_activity }}</small
+                    >
+                    <span
+                      class="badge bg-{{ 'success' if wallet.balance > 0 else 'danger' }}"
+                    >
+                      {{ 'Active' if wallet.balance > 0 else 'Inactive' }}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
+            {% endfor %}
           </div>
-          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="card">
+        <div
+          class="card-header d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">Recent Transactions</h5>
+          <div>
+            <button
+              class="btn btn-sm btn-outline-primary"
+              data-bs-toggle="modal"
+              data-bs-target="#filterModal"
+            >
+              <i class="bi bi-funnel"></i> Filter
+            </button>
+            <button
+              class="btn btn-sm btn-outline-secondary"
+              onclick="exportTransactions()"
+            >
+              <i class="bi bi-download"></i> Export
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="list-group">
+            {% for transaction in transactions %}
+            <div class="list-group-item transaction-item">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-1">
+                    {{ transaction.amount }} {{ transaction.currency }}
+                  </h6>
+                  <small class="text-muted">
+                    {% if transaction.sender_id == user.id %} To: {{
+                    User.query.get(transaction.recipient_id).username }} {% else
+                    %} From: {{ User.query.get(transaction.sender_id).username
+                    }} {% endif %}
+                  </small>
+                  <br />
+                  <small class="text-muted"
+                    >Category: {{ transaction.category }}</small
+                  >
+                </div>
+                <div class="text-end">
+                  <span
+                    class="badge bg-{{ 'success' if transaction.status == 'completed' else 'warning' }}"
+                  >
+                    {{ transaction.status|title }}
+                  </span>
+                  <br />
+                  <small class="text-muted"
+                    >{{ transaction.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                    }}</small
+                  >
+                </div>
+              </div>
+              {% if transaction.notes %}
+              <small class="text-muted mt-2 d-block"
+                >Notes: {{ transaction.notes }}</small
+              >
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Transfer Section -->
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-header">
-        <h5 class="mb-0">Transfer Money</h5>
+    <!-- Right Column -->
+    <div class="col-md-4">
+      <!-- User Profile -->
+      <div class="card mb-4">
+        <div class="card-body text-center">
+          <img
+            src="{{ user.profile_pic or url_for('static', filename='default-profile.png') }}"
+            class="profile-pic mb-3"
+            alt="Profile Picture"
+          />
+          <h5>{{ user.username }}</h5>
+          <p class="text-muted">{{ user.email }}</p>
+          <a
+            href="{{ url_for('profile') }}"
+            class="btn btn-outline-primary btn-sm"
+          >
+            Edit Profile
+          </a>
+        </div>
       </div>
-      <div class="card-body">
-        <form method="POST" action="{{ url_for('transfer') }}">
-          {{ transfer_form.hidden_tag() }}
-          <div class="mb-3">
-            {{ transfer_form.recipient.label(class="form-label") }} {{
-            transfer_form.recipient(class="form-control") }}
-          </div>
-          <div class="mb-3">
-            {{ transfer_form.amount.label(class="form-label") }} {{
-            transfer_form.amount(class="form-control") }}
-          </div>
-          <div class="mb-3">
-            {{ transfer_form.currency.label(class="form-label") }} {{
-            transfer_form.currency(class="form-select") }}
-          </div>
-          <button type="submit" class="btn btn-primary w-100">Transfer</button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- Transaction History -->
-<div class="card mt-4">
-  <div class="card-header">
-    <h5 class="mb-0">Transaction History</h5>
-  </div>
-  <div class="card-body">
-    <div class="list-group">
-      {% for transaction in transactions %}
-      <div class="list-group-item transaction-item">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h6 class="mb-1">
-              {{ transaction.amount }} {{ transaction.currency }}
-            </h6>
+      <!-- Analytics -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Spending Analytics</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="spendingChart"></canvas>
+          <div class="mt-3">
+            <h6>Monthly Summary</h6>
+            <div class="progress budget-progress mb-2">
+              <div
+                class="progress-bar bg-success"
+                style="width: {{ monthly_summary.spent_percentage }}%"
+              >
+                {{ monthly_summary.spent_percentage }}%
+              </div>
+            </div>
             <small class="text-muted">
-              {% if transaction.sender_id == user.id %} To: {{
-              User.query.get(transaction.recipient_id).username }} {% else %}
-              From: {{ User.query.get(transaction.sender_id).username }} {%
-              endif %}
+              Spent: {{ monthly_summary.total_spent }} of {{
+              monthly_summary.budget }} budget
             </small>
           </div>
-          <span class="badge bg-success">Completed</span>
         </div>
-        <small class="text-muted"
-          >{{ transaction.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small
-        >
       </div>
-      {% endfor %}
+
+      <!-- Financial Goals -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Financial Goals</h5>
+        </div>
+        <div class="card-body">
+          {% for goal in financial_goals %}
+          <div class="mb-3">
+            <h6>{{ goal.name }}</h6>
+            <div class="progress budget-progress mb-2">
+              <div
+                class="progress-bar bg-info"
+                style="width: {{ goal.progress }}%"
+              >
+                {{ goal.progress }}%
+              </div>
+            </div>
+            <small class="text-muted">
+              {{ goal.current_amount }} of {{ goal.target_amount }} {{
+              goal.currency }}
+            </small>
+          </div>
+          {% endfor %}
+          <button
+            class="btn btn-sm btn-outline-primary w-100"
+            data-bs-toggle="modal"
+            data-bs-target="#addGoalModal"
+          >
+            Add New Goal
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Add Wallet Modal -->
-<div class="modal fade" id="addWalletModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Add New Wallet</h5>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-        ></button>
-      </div>
-      <div class="modal-body">
-        <form method="POST" action="{{ url_for('add_wallet') }}">
-          {{ add_wallet_form.hidden_tag() }}
-          <div class="mb-3">
-            {{ add_wallet_form.currency.label(class="form-label") }} {{
-            add_wallet_form.currency(class="form-control", placeholder="e.g.,
-            EUR") }}
-          </div>
-          <button type="submit" class="btn btn-primary w-100">
-            Add Wallet
-          </button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- Include all necessary modals -->
+{% include 'modals/transfer.html' %} {% include 'modals/deposit.html' %} {%
+include 'modals/convert.html' %} {% include 'modals/add_wallet.html' %} {%
+include 'modals/filter_transactions.html' %} {% include 'modals/add_goal.html'
+%} {% endblock %} {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Initialize spending chart
+  const ctx = document.getElementById('spendingChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: {{ spending_labels|tojson }},
+      datasets: [{
+        label: 'Spending',
+        data: {{ spending_data|tojson }},
+        borderColor: 'rgb(75, 192, 192)',
+        tension: 0.1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: false
+        }
+      }
+    }
+  });
+
+  // Export transactions function
+  function exportTransactions() {
+    // Implementation for exporting transactions
+    window.location.href = "{{ url_for('export_transactions') }}";
+  }
+</script>
 {% endblock %}

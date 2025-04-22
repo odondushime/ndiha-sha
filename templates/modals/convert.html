@@ -1,0 +1,111 @@
+{% extends "base.html" %} {% block title %}Convert Currency{% endblock %} {%
+block content %}
+<div
+  class="modal fade"
+  id="convertModal"
+  tabindex="-1"
+  aria-labelledby="convertModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="convertModalLabel">Convert Currency</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form method="POST" action="{{ url_for('convert_currency') }}">
+          {{ form.csrf_token }}
+          <div class="mb-3">
+            {{ form.from_currency.label(class="form-label") }} {{
+            form.from_currency(class="form-select") }} {% if
+            form.from_currency.errors %}
+            <div class="invalid-feedback d-block">
+              {% for error in form.from_currency.errors %} {{ error }} {% endfor
+              %}
+            </div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            {{ form.to_currency.label(class="form-label") }} {{
+            form.to_currency(class="form-select") }} {% if
+            form.to_currency.errors %}
+            <div class="invalid-feedback d-block">
+              {% for error in form.to_currency.errors %} {{ error }} {% endfor
+              %}
+            </div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            {{ form.amount.label(class="form-label") }} {{
+            form.amount(class="form-control") }} {% if form.amount.errors %}
+            <div class="invalid-feedback d-block">
+              {% for error in form.amount.errors %} {{ error }} {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            {{ form.notes.label(class="form-label") }} {{
+            form.notes(class="form-control") }} {% if form.notes.errors %}
+            <div class="invalid-feedback d-block">
+              {% for error in form.notes.errors %} {{ error }} {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+            {{ form.submit(class="btn btn-primary") }}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+<script>
+  // Update exchange rate and converted amount when currencies change
+  document
+    .getElementById("{{ convert_form.from_currency.id }}")
+    .addEventListener("change", updateConversion);
+  document
+    .getElementById("{{ convert_form.to_currency.id }}")
+    .addEventListener("change", updateConversion);
+  document
+    .getElementById("{{ convert_form.amount.id }}")
+    .addEventListener("input", updateConversion);
+
+  function updateConversion() {
+    const fromCurrency = document.getElementById(
+      "{{ convert_form.from_currency.id }}"
+    ).value;
+    const toCurrency = document.getElementById(
+      "{{ convert_form.to_currency.id }}"
+    ).value;
+    const amount = document.getElementById(
+      "{{ convert_form.amount.id }}"
+    ).value;
+
+    // Fetch exchange rate from your API
+    fetch(`/api/exchange-rate/${fromCurrency}/${toCurrency}`)
+      .then((response) => response.json())
+      .then((data) => {
+        document.getElementById("exchangeRate").textContent =
+          data.rate.toFixed(4);
+        const convertedAmount = amount * data.rate;
+        document.getElementById("convertedAmount").textContent =
+          convertedAmount.toFixed(2) + " " + toCurrency;
+      });
+  }
+</script>

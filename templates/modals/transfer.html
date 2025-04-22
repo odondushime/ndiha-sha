@@ -1,0 +1,52 @@
+<!-- Transfer Modal -->
+<div class="modal fade" id="transferModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Transfer Money</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form
+          method="POST"
+          action="{{ url_for('transfer') }}"
+          id="transferForm"
+        >
+          {{ transfer_form.hidden_tag() }}
+          <div class="mb-3">
+            {{ transfer_form.recipient.label(class="form-label") }} {{
+            transfer_form.recipient(class="form-control", placeholder="Enter
+            username") }}
+          </div>
+          <div class="mb-3">
+            {{ transfer_form.amount.label(class="form-label") }}
+            <div class="input-group">
+              {{ transfer_form.amount(class="form-control", placeholder="0.00")
+              }} {{ transfer_form.currency(class="form-select") }}
+            </div>
+          </div>
+          <div class="mb-3">
+            {{ transfer_form.category.label(class="form-label") }} {{
+            transfer_form.category(class="form-select") }}
+          </div>
+          <div class="mb-3">
+            {{ transfer_form.notes.label(class="form-label") }} {{
+            transfer_form.notes(class="form-control", placeholder="Add a note
+            (optional)") }}
+          </div>
+          <div class="alert alert-info">
+            <small>
+              <i class="bi bi-info-circle"></i>
+              Large transfers may require additional security verification.
+            </small>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Transfer</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
